@@ -15,6 +15,49 @@ afterEach(commonAfterEach)
 afterAll(commonAfterAll)
 
 describe("Booking", () => {
+
+  // used "createBooking" rather than "notBooking" - discrepancy in course portal isntructions
+  describe("Test createBooking", () => {
+
+    test("Can create a new booking with valid params", async () => {
+      const user = { username: "jlo" }
+      const listingId = testListingIds[0]
+      const listing = await Listing.fetchListingById(listingId)
+      const newBooking = { startDate: new Date("07-05-2022"),
+                           endDate: new Date("07-06-2022"),
+                           guests: 3
+                          }
+      const booking = await Booking.createBooking( newBooking, listing, user )
+      expect(booking).toEqual({
+        id: expect.any(Number),
+        startDate: new Date("07-05-2022"),
+        endDate:  new Date("07-06-2022"),
+        paymentMethod: "card",
+        guests: 3,
+        listingId: listingId,
+        username: "jlo",
+        userId: expect.any(Number),
+        createdAt: expect.any(Date),
+        hostUsername: "lebron",
+        totalCost: Math.ceil(2 * (listing.price * 1.1)) - 1
+      })
+    })
+
+    test("Throws error with invalid params", async () => {
+      const user = { username: "jlo" }
+      const listingId = testListingIds[1]
+      const listing = await Listing.fetchListingById(listingId)
+      const newBooking = { endDate: new Date("07-06-2022") }
+
+      try {
+        await Booking.createBooking( newBooking, listing, user )
+      } catch (err) {
+        expect(err instanceof BadRequestError).toBeTruthy()
+      }
+
+    })
+  })
+
   describe("Test listBookingsFromUser", () => {
     test("Fetches all of the authenticated users' bookings", async () => {
       const user = { username: "jlo" }
@@ -32,7 +75,7 @@ describe("Booking", () => {
         id: expect.any(Number),
         startDate: new Date("03-05-2021"),
         endDate: new Date("03-07-2021"),
-        paymentMethod: "card",
+        paymentMethod: expect.any(String),
         guests: 1,
         username: "jlo",
         hostUsername: "lebron",

@@ -1,5 +1,6 @@
 const db = require("../db")
 
+
 const createBookings = async (userIds, listingIds) => {
   const userId = userIds[0]
   const listingId = listingIds[0]

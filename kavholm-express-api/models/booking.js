@@ -2,6 +2,62 @@ const db = require("../db")
 const { BadRequestError, NotFoundError } = require("../utils/errors")
 
 class Booking {
+
+  // used "createBooking" rather than "newBooking" - discrepancy in course portal instructions
+  static async createBooking( newBooking, listing, user ) {
+    // create new booking
+    const requiredFields = ["startDate", "endDate"]
+    requiredFields.forEach((field) => {
+      if (!newBooking?.hasOwnProperty(field)) {
+        throw new BadRequestError(`Missing required field - ${field} - in request body.`)
+      }
+    })
+
+    const results = await db.query(
+      `
+      INSERT INTO bookings (
+        payment_method,
+        start_date,
+        end_date,
+        guests,
+        total_cost,
+        listing_id,
+        user_id
+      )
+      VALUES (
+        $1,
+        CAST($2 as DATE), 
+        CAST($3 as DATE),
+        $4,
+        CEIL( (($3)::date - ($2)::date + 1) * ($5 + $5 * 0.1) ),
+        $6,
+        (SELECT id from users WHERE username = $7)
+      )
+      RETURNING id,
+                start_date AS "startDate",
+                end_date AS "endDate",
+                guests,
+                total_cost::integer AS "totalCost",
+                user_id AS "userId",
+                (SELECT username FROM users WHERE id = user_id) AS "username",
+                (SELECT username FROM users WHERE id = (SELECT listings.user_id FROM listings WHERE listings.id = $6) ) AS "hostUsername",
+                created_at AS "createdAt",
+                listing_id as "listingId",
+                payment_method as "paymentMethod"
+      `, [ newBooking.paymentMethod || "card",
+           newBooking.startDate,
+           newBooking.endDate,
+           newBooking.guests || 1,
+           parseInt(listing.price),
+           listing.id,
+           user.username    
+         ]
+    )
+
+    return results.rows[0]
+
+  }
+
   static async fetchBookingById(bookingId) {
     // fetch a single booking by its id
     const results = await db.query(

@@ -76,8 +76,8 @@ class User {
       ]
     )
     const user = userResult.rows[0]
-
-    return user
+    const publicUser = await User.makePublicUser(user)
+    return publicUser
   }
 
   static async fetchUserByEmail(email) {
